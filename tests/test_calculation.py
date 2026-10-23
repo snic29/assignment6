@@ -1,0 +1,218 @@
+import pytest
+from decimal import Decimal
+from datetime import datetime
+from app.calculation import Calculation
+from app.calculator_memento import CalculatorMemento
+from app.exceptions import OperationError
+import logging
+
+def test_addition():
+    calc = Calculation(operation="Addition", operand1=Decimal("2"), operand2=Decimal("3"))
+    assert calc.result == Decimal("5")
+
+
+def test_subtraction():
+    calc = Calculation(operation="Subtraction", operand1=Decimal("5"), operand2=Decimal("3"))
+    assert calc.result == Decimal("2")
+
+
+def test_multiplication():
+    calc = Calculation(operation="Multiplication", operand1=Decimal("4"), operand2=Decimal("2"))
+    assert calc.result == Decimal("8")
+
+
+def test_division():
+    calc = Calculation(operation="Division", operand1=Decimal("8"), operand2=Decimal("2"))
+    assert calc.result == Decimal("4")
+
+
+def test_division_by_zero():
+    with pytest.raises(OperationError, match="Division by zero is not allowed."):
+        Calculation(operation="Division", operand1=Decimal("8"), operand2=Decimal("0"))
+
+
+def test_power():
+    calc = Calculation(operation="Power", operand1=Decimal("2"), operand2=Decimal("3"))
+    assert calc.result == Decimal("8")
+
+
+def test_negative_power():
+    with pytest.raises(OperationError, match="Negative exponents are not supported."):
+        Calculation(operation="Power", operand1=Decimal("2"), operand2=Decimal("-3"))
+
+
+def test_root():
+    calc = Calculation(operation="Root", operand1=Decimal("16"), operand2=Decimal("2"))
+    assert calc.result == Decimal("4")
+
+
+def test_invalid_root():
+    with pytest.raises(OperationError, match="Cannot calculate root of negative number."):
+        Calculation(operation="Root", operand1=Decimal("-16"), operand2=Decimal("2"))
+
+
+def test_modulus():
+    calc = Calculation(operation="Modulus", operand1=Decimal("10"), operand2=Decimal("3"))
+    assert calc.result == Decimal("1")
+
+
+def test_integer_division():
+    calc = Calculation(operation="IntegerDivision", operand1=Decimal("-10"), operand2=Decimal("3"))
+    assert calc.result == Decimal("-3")
+
+
+def test_percentage():
+    calc = Calculation(operation="Percentage", operand1=Decimal("25"), operand2=Decimal("200"))
+    assert calc.result == Decimal("12.5")
+
+
+def test_absolute_difference():
+    calc = Calculation(operation="AbsoluteDifference", operand1=Decimal("-3"), operand2=Decimal("2"))
+    assert calc.result == Decimal("5")
+
+
+def test_unknown_operation():
+    with pytest.raises(OperationError, match="Unknown operation"):
+        Calculation(operation="Unknown", operand1=Decimal("5"), operand2=Decimal("3"))
+
+# Calculation Error
+def test_calculation_handles_arithmetic_error():
+    calculation = Calculation.__new__(Calculation)
+
+    calculation.operation = "Addition"
+    calculation.operand1 = Decimal("2")
+    calculation.operand2 = Decimal("3")
+
+    class BadDecimal:
+        def __add__(self, other):
+            raise ArithmeticError("Test arithmetic failure")
+
+    calculation.operand1 = BadDecimal()
+
+    with pytest.raises(OperationError, match="Calculation failed: Test arithmetic failure"):
+        calculation.calculate()
+
+
+def test_to_dict():
+    calc = Calculation(operation="Addition", operand1=Decimal("2"), operand2=Decimal("3"))
+    result_dict = calc.to_dict()
+    assert result_dict == {
+        "operation": "Addition",
+        "operand1": "2",
+        "operand2": "3",
+        "result": "5",
+        "timestamp": calc.timestamp.isoformat()
+    }
+
+
+def test_from_dict():
+    data = {
+        "operation": "Addition",
+        "operand1": "2",
+        "operand2": "3",
+        "result": "5",
+        "timestamp": datetime.now().isoformat()
+    }
+    calc = Calculation.from_dict(data)
+    assert calc.operation == "Addition"
+    assert calc.operand1 == Decimal("2")
+    assert calc.operand2 == Decimal("3")
+    assert calc.result == Decimal("5")
+
+
+def test_invalid_from_dict():
+    data = {
+        "operation": "Addition",
+        "operand1": "invalid",
+        "operand2": "3",
+        "result": "5",
+        "timestamp": datetime.now().isoformat()
+    }
+    with pytest.raises(OperationError, match="Invalid calculation data"):
+        Calculation.from_dict(data)
+
+
+def test_str():
+    calculation = Calculation(
+        operation="Addition",
+        operand1=Decimal("2"),
+        operand2=Decimal("3")
+    )
+
+    assert str(calculation) == "Addition(2, 3) = 5"
+
+
+def test_str_formats_normalized_operands_without_scientific_notation():
+    calculation = Calculation(
+        operation="Modulus",
+        operand1=Decimal("10").normalize(),
+        operand2=Decimal("4").normalize(),
+    )
+
+    assert str(calculation) == "Modulus(10, 4) = 2"
+
+
+def test_repr():
+    timestamp = datetime(2026, 1, 1, 12, 0, 0)
+
+    calculation = Calculation(
+        operation="Addition",
+        operand1=Decimal("2"),
+        operand2=Decimal("3"),
+        timestamp=timestamp
+    )
+
+    assert repr(calculation) == (
+        "Calculation(operation='Addition', "
+        "operand1=2, "
+        "operand2=3, "
+        "result=5, "
+        "timestamp='2026-01-01T12:00:00')"
+    )
+
+
+def test_calculation_non_calculation():
+    calculation = Calculation(
+        operation="Addition",
+        operand1=Decimal("2"),
+        operand2=Decimal("3")
+    )
+
+    assert calculation.__eq__("not a calculation") is NotImplemented
+
+
+def test_format_result():
+    calc = Calculation(operation="Division", operand1=Decimal("1"), operand2=Decimal("3"))
+    assert calc.format_result(precision=2) == "0.33"
+    assert calc.format_result(precision=10) == "0.3333333333"
+
+
+def test_equality():
+    calc1 = Calculation(operation="Addition", operand1=Decimal("2"), operand2=Decimal("3"))
+    calc2 = Calculation(operation="Addition", operand1=Decimal("2"), operand2=Decimal("3"))
+    calc3 = Calculation(operation="Subtraction", operand1=Decimal("5"), operand2=Decimal("3"))
+    assert calc1 == calc2
+    assert calc1 != calc3
+
+
+# New Test to Cover Logging Warning
+def test_from_dict_result_mismatch(caplog):
+    """
+    Test the from_dict method to ensure it logs a warning when the saved result
+    does not match the computed result.
+    """
+    # Arrange
+    data = {
+        "operation": "Addition",
+        "operand1": "2",
+        "operand2": "3",
+        "result": "10",  # Incorrect result to trigger logging.warning
+        "timestamp": datetime.now().isoformat()
+    }
+
+    # Act
+    with caplog.at_level(logging.WARNING):
+        calc = Calculation.from_dict(data)
+
+    # Assert
+    assert "Loaded calculation result 10 differs from computed result 5" in caplog.text
