@@ -53,6 +53,23 @@ venv\Scripts\activate.bat  # Windows
 pip install -r requirements.txt
 ```
 
+## Configuration
+
+The calculator loads an optional `.env` file from the project root using `python-dotenv`. Copy `.env.example` to `.env` and adjust the values as needed:
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `CALCULATOR_LOG_DIR` | `./logs` | Directory for log files |
+| `CALCULATOR_LOG_FILE` | `./logs/calculator.log` | File for application logs |
+| `CALCULATOR_HISTORY_DIR` | `./history` | Directory for history files |
+| `CALCULATOR_MAX_HISTORY_SIZE` | `1000` | Maximum number of history entries |
+| `CALCULATOR_AUTO_SAVE` | `true` | Whether to save after each calculation (`true`/`false`; `1`/`0` also accepted) |
+| `CALCULATOR_PRECISION` | `10` | Number of decimal places for formatted calculation results |
+| `CALCULATOR_MAX_INPUT_VALUE` | `1e999` | Maximum allowed absolute input value |
+| `CALCULATOR_DEFAULT_ENCODING` | `utf-8` | Default file encoding |
+
+The application validates numeric settings at startup. Invalid numbers, non-positive limits, and unsupported auto-save values are reported as configuration errors. INFO, WARNING, and ERROR messages—including calculation details and failures—are written to `CALCULATOR_LOG_FILE` through the shared `Logger` class.
+
 # 🚀 2. Running the Calculator
 
 Start the calculator:
@@ -98,6 +115,10 @@ The calculator supports:
 - **`divide`**
 - **`power`**
 - **`root`**
+- **`modulus`**
+- **`int_divide`**
+- **`percent`** — calculates `(first number / second number) * 100`
+- **`abs_diff`**
 
 The calculator handles invalid input, unknown operations, and division by zero with appropriate error messages.
 
@@ -143,24 +164,25 @@ calculator/
 │   ├── calculation.py
 │   ├── calculator_config.py
 │   ├── calculator_memento.py
-│   ├── calculator_repl.py
 │   ├── calculator.py
 │   ├── exceptions.py
 │   ├── history.py
 │   ├── input_validators.py
+│   ├── logger.py
 │   └── operations.py
 ├── tests/
 │   ├── test_calculation.py
 │   ├── test_calculator_config.py
 │   ├── test_calculator_memento.py
-│   ├── test_calculator_repl.py
 │   ├── test_calculator.py
 │   ├── test_exceptions.py
 │   ├── test_history.py
 │   ├── test_input_validators.py
+│   ├── test_logger.py
 │   └── test_operations.py
 ├── .github/workflows/
 │   └── tests.yml
+├── .env
 ├── requirements.txt
 ├── main.py
 └── README.md
