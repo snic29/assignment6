@@ -124,6 +124,14 @@ The calculator supports:
 
 The calculator handles invalid input, unknown operations, and division by zero with appropriate error messages.
 
+## Queuing calculations
+
+Use `queue` to select an operation and provide its two operands without running it. Repeat to add more commands, then enter `run_queue` to execute them in FIFO order.
+
+Queued calculations use the same validation, history, logging, and auto-save behavior as calculations executed immediately. If a queued command fails, it and the remaining commands stay queued for retry.
+
+Each calculation request is encapsulated as a `CalculateCommand` containing the calculator receiver, operation, and operands. `CommandInvoker` can execute commands immediately or enqueue them for later execution.
+
 
 # 📜 3. Special Commands
 
@@ -135,6 +143,8 @@ The calculator handles invalid input, unknown operations, and division by zero w
 - **`redo`** - Redoes the last undone calculation
 - **`save`** - Exports calculation history to file
 - **`load`** - Imports calculation history from file
+- **`queue`** - Add a calculation to the command queue
+- **`run_queue`** - Execute queued calculations in order
 
 
 # 🧪 4. Running Tests
@@ -167,6 +177,7 @@ calculator/
 │   ├── calculator_config.py
 │   ├── calculator_memento.py
 │   ├── calculator.py
+│   ├── commands.py
 │   ├── exceptions.py
 │   ├── history.py
 │   ├── input_validators.py
@@ -177,6 +188,7 @@ calculator/
 │   ├── test_calculator_config.py
 │   ├── test_calculator_memento.py
 │   ├── test_calculator.py
+│   ├── test_commands.py
 │   ├── test_exceptions.py
 │   ├── test_history.py
 │   ├── test_input_validators.py

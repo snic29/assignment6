@@ -8,6 +8,7 @@ import pandas as pd
 
 from app.calculation import Calculation
 from app.calculator_config import CalculatorConfig
+from app.commands import CalculateCommand, CommandInvoker
 from app.calculator_memento import CalculatorMemento
 from app.exceptions import OperationError, ValidationError
 from app.history import HistoryObserver, AutoSaveObserver, LoggingObserver
@@ -398,6 +399,7 @@ def calculator_repl():
         # Register observers for logging and auto-saving history
         calc.add_observer(LoggingObserver())
         calc.add_observer(AutoSaveObserver(calc))
+        invoker = CommandInvoker()
 
         print(_colorize("Calculator started. Type 'help' for commands.", Fore.CYAN))
 
@@ -420,6 +422,8 @@ def calculator_repl():
                     print(_colorize("  redo - Redo the last undone calculation", Fore.CYAN))
                     print(_colorize("  save - Save calculation history to file", Fore.CYAN))
                     print(_colorize("  load - Load calculation history from file", Fore.CYAN))
+                    print(_colorize("  queue - Add a calculation to the command queue", Fore.CYAN))
+                    print(_colorize("  run_queue - Execute queued calculations in order", Fore.CYAN))
                     print(_colorize("  help - Display available commands", Fore.CYAN))
                     print(_colorize("  exit - Exit the calculator", Fore.CYAN))
                     continue
@@ -485,6 +489,51 @@ def calculator_repl():
                         print(_colorize(f"Error loading history: {e}", Fore.RED))
                     continue
 
+                if command == 'queue':
+                    try:
+                        operation_name = input(
+                            _colorize("Operation to queue: ", Fore.CYAN)
+                        ).lower().strip()
+                        if operation_name == 'cancel':
+                            print(_colorize("Operation cancelled", Fore.YELLOW))
+                            continue
+                        operation = OperationFactory.create_operation(operation_name)
+                        a = input(_colorize("First number: ", Fore.CYAN))
+                        if a.lower() == 'cancel':
+                            print(_colorize("Operation cancelled", Fore.YELLOW))
+                            continue
+                        b = input(_colorize("Second number: ", Fore.CYAN))
+                        if b.lower() == 'cancel':
+                            print(_colorize("Operation cancelled", Fore.YELLOW))
+                            continue
+                        invoker.enqueue(CalculateCommand(calc, operation, a, b))
+                        print(_colorize(
+                            f"Calculation queued ({invoker.queued_count} pending)",
+                            Fore.GREEN,
+                        ))
+                    except (ValidationError, OperationError, ValueError) as e:
+                        print(_colorize(f"Error: {e}", Fore.RED))
+                    continue
+
+                if command == 'run_queue':
+                    try:
+                        results = invoker.execute_queue()
+                        if not results:
+                            print(_colorize("No queued calculations", Fore.YELLOW))
+                        else:
+                            for result in results:
+                                if isinstance(result, Decimal):
+                                    result = format(
+                                        result,
+                                        f".{calc.config.precision}f",
+                                    ).rstrip("0").rstrip(".")
+                                    if not result:
+                                        result = "0"
+                                print(_colorize(f"Result: {result}", Fore.GREEN))
+                    except (ValidationError, OperationError) as e:
+                        print(_colorize(f"Error: {e}", Fore.RED))
+                    continue
+
                 if command in ['add', 'subtract', 'multiply', 'divide', 'power', 'root', 'modulus', 'int_divide', 'percent', 'abs_diff']:
                     # Perform the specified arithmetic operation
                     try:
@@ -498,12 +547,12 @@ def calculator_repl():
                             print(_colorize("Operation cancelled", Fore.YELLOW))
                             continue
 
-                        # Create the appropriate operation instance using the Factory pattern
+                        # Create the operation and encapsulate the request as a command.
                         operation = OperationFactory.create_operation(command)
-                        calc.set_operation(operation)
-
-                        # Perform the calculation
-                        result = calc.perform_operation(a, b)
+                        calculate_command = CalculateCommand(
+                            calc, operation, a, b
+                        )
+                        result = invoker.execute(calculate_command)
 
                         # Format Decimal results with the configured precision.
                         if isinstance(result, Decimal):

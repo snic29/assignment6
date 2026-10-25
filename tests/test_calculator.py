@@ -290,6 +290,25 @@ def test_calculator_repl_addition(mock_print, mock_input):
     calculator_repl()
     mock_print.assert_any_call("\nResult: 5")
 
+
+@patch(
+    'builtins.input',
+    side_effect=[
+        'queue', 'add', '2', '3',
+        'queue', 'multiply', '4', '5',
+        'run_queue', 'exit',
+    ],
+)
+@patch('builtins.print')
+def test_calculator_repl_queues_and_runs_commands(mock_print, mock_input):
+    calculator_repl()
+
+    mock_print.assert_any_call("Calculation queued (1 pending)")
+    mock_print.assert_any_call("Calculation queued (2 pending)")
+    mock_print.assert_any_call("Result: 5")
+    mock_print.assert_any_call("Result: 20")
+
+
 @patch('builtins.input', side_effect=['history', 'exit'])
 @patch('builtins.print')
 def test_calculator_repl_empty_history(mock_print, mock_input):
