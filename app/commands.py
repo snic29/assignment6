@@ -11,14 +11,14 @@ CalculationResult = Union[int, float, Decimal, str]
 
 class CalculatorReceiver(Protocol):
     def set_operation(self, operation: Operation) -> None:
-        ...
+        ...  # pragma: no cover
 
     def perform_operation(
         self,
         a: Union[str, int, float, Decimal],
         b: Union[str, int, float, Decimal],
     ) -> CalculationResult:
-        ...
+        ...  # pragma: no cover
 
 
 class Command(ABC):
