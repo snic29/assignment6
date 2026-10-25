@@ -2,6 +2,8 @@
 
 This is an advanced Python command-line REPL calculator application. This version incorporates software design patterns, persistent history management using pandas, environment variable configuration, expanded arithmetic operations, and 100% test coverage enforced via GitHub Actions.
 
+Interactive terminal output uses Colorama: results and successful actions are green, informational text and prompts are cyan, warnings are yellow, and errors are red. Color is omitted when output is redirected.
+
 ---
 
 # 🛠️ 1. Project Setup

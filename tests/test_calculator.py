@@ -2,14 +2,32 @@ import datetime
 from pathlib import Path
 import pandas as pd
 import pytest
+import sys
+from types import SimpleNamespace
 from unittest.mock import Mock, patch, PropertyMock
 from decimal import Decimal
 from tempfile import TemporaryDirectory
-from app.calculator import Calculator, calculator_repl
+from colorama import Fore, Style
+from app.calculator import Calculator, calculator_repl, _colorize
 from app.calculator_config import CalculatorConfig
 from app.exceptions import OperationError, ValidationError
 from app.history import LoggingObserver, AutoSaveObserver
 from app.operations import OperationFactory
+
+
+def test_colorize_omits_ansi_codes_when_output_is_not_a_terminal(monkeypatch):
+    monkeypatch.setattr(sys, "stdout", SimpleNamespace(isatty=lambda: False))
+
+    assert _colorize("Result: 5", Fore.GREEN) == "Result: 5"
+
+
+def test_colorize_adds_ansi_codes_for_terminal_output(monkeypatch):
+    monkeypatch.setattr(sys, "stdout", SimpleNamespace(isatty=lambda: True))
+
+    assert _colorize("Result: 5", Fore.GREEN) == (
+        f"{Fore.GREEN}Result: 5{Style.RESET_ALL}"
+    )
+
 
 # Fixture to initialize Calculator with a temporary directory for file paths
 @pytest.fixture
