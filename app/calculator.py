@@ -527,8 +527,6 @@ def calculator_repl():
                                         result,
                                         f".{calc.config.precision}f",
                                     ).rstrip("0").rstrip(".")
-                                    if not result:
-                                        result = "0"
                                 print(_colorize(f"Result: {result}", Fore.GREEN))
                     except (ValidationError, OperationError) as e:
                         print(_colorize(f"Error: {e}", Fore.RED))
