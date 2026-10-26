@@ -124,6 +124,10 @@ The calculator supports:
 
 The calculator handles invalid input, unknown operations, and division by zero with appropriate error messages.
 
+## Dynamic help menu
+
+The help menu uses a decorator around the standard command menu to append operation names from `OperationFactory`. Registering a new operation with `OperationFactory.register_operation()` automatically adds it to the help output and makes it available as a REPL command.
+
 ## Queuing calculations
 
 Use `queue` to select an operation and provide its two operands without running it. Repeat to add more commands, then enter `run_queue` to execute them in FIFO order.

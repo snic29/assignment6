@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from decimal import Decimal
 from pathlib import Path
 import sys
@@ -19,6 +20,52 @@ from app.operations import Operation, OperationFactory
 # Type aliases for better readability
 Number = Union[int, float, Decimal]
 CalculationResult = Union[Number, str]
+
+
+class HelpMenu(ABC):
+    """Interface for help-menu components and decorators."""
+
+    @abstractmethod
+    def get_lines(self) -> List[str]:
+        """Return the help text as individual display lines."""
+
+
+class StandardHelpMenu(HelpMenu):
+    """Help entries for calculator commands that are not operations."""
+
+    def get_lines(self) -> List[str]:
+        return [
+            "history - Show calculation history",
+            "clear - Clear calculation history",
+            "undo - Undo the last calculation",
+            "redo - Redo the last undone calculation",
+            "save - Save calculation history to file",
+            "load - Load calculation history from file",
+            "queue - Add a calculation to the command queue",
+            "run_queue - Execute queued calculations in order",
+            "help - Display available commands",
+            "exit - Exit the calculator",
+        ]
+
+
+class HelpMenuDecorator(HelpMenu):
+    """Base decorator that extends another help-menu component."""
+
+    def __init__(self, component: HelpMenu) -> None:
+        self._component = component
+
+    def get_lines(self) -> List[str]:
+        return self._component.get_lines()
+
+
+class OperationHelpDecorator(HelpMenuDecorator):
+    """Add the current factory-registered operations to the help menu."""
+
+    def get_lines(self) -> List[str]:
+        lines = super().get_lines()
+        operations = ", ".join(OperationFactory.available_operations())
+        lines.insert(0, f"{operations} - Perform calculations")
+        return lines
 
 
 def _colorize(message: str, color: str) -> str:
@@ -400,6 +447,7 @@ def calculator_repl():
         calc.add_observer(LoggingObserver())
         calc.add_observer(AutoSaveObserver(calc))
         invoker = CommandInvoker()
+        help_menu = OperationHelpDecorator(StandardHelpMenu())
 
         print(_colorize("Calculator started. Type 'help' for commands.", Fore.CYAN))
 
@@ -411,21 +459,8 @@ def calculator_repl():
                 if command == 'help':
                     # Display available commands
                     print(_colorize("\nAvailable commands:", Fore.CYAN))
-                    print(_colorize(
-                        "  add, subtract, multiply, divide, power, root, modulus, "
-                        "int_divide, percent, abs_diff - Perform calculations",
-                        Fore.CYAN,
-                    ))
-                    print(_colorize("  history - Show calculation history", Fore.CYAN))
-                    print(_colorize("  clear - Clear calculation history", Fore.CYAN))
-                    print(_colorize("  undo - Undo the last calculation", Fore.CYAN))
-                    print(_colorize("  redo - Redo the last undone calculation", Fore.CYAN))
-                    print(_colorize("  save - Save calculation history to file", Fore.CYAN))
-                    print(_colorize("  load - Load calculation history from file", Fore.CYAN))
-                    print(_colorize("  queue - Add a calculation to the command queue", Fore.CYAN))
-                    print(_colorize("  run_queue - Execute queued calculations in order", Fore.CYAN))
-                    print(_colorize("  help - Display available commands", Fore.CYAN))
-                    print(_colorize("  exit - Exit the calculator", Fore.CYAN))
+                    for help_line in help_menu.get_lines():
+                        print(_colorize(f"  {help_line}", Fore.CYAN))
                     continue
 
                 if command == 'exit':
@@ -532,7 +567,7 @@ def calculator_repl():
                         print(_colorize(f"Error: {e}", Fore.RED))
                     continue
 
-                if command in ['add', 'subtract', 'multiply', 'divide', 'power', 'root', 'modulus', 'int_divide', 'percent', 'abs_diff']:
+                if command in OperationFactory.available_operations():
                     # Perform the specified arithmetic operation
                     try:
                         print(_colorize("\nEnter numbers (or 'cancel' to abort):", Fore.CYAN))

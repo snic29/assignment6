@@ -8,11 +8,19 @@ from unittest.mock import Mock, patch, PropertyMock
 from decimal import Decimal
 from tempfile import TemporaryDirectory
 from colorama import Fore, Style
-from app.calculator import Calculator, calculator_repl, _colorize
+from app.calculator import (
+    Calculator,
+    HelpMenu,
+    HelpMenuDecorator,
+    OperationHelpDecorator,
+    StandardHelpMenu,
+    calculator_repl,
+    _colorize,
+)
 from app.calculator_config import CalculatorConfig
 from app.exceptions import OperationError, ValidationError
 from app.history import LoggingObserver, AutoSaveObserver
-from app.operations import OperationFactory
+from app.operations import Operation, OperationFactory
 
 
 def test_colorize_omits_ansi_codes_when_output_is_not_a_terminal(monkeypatch):
@@ -283,6 +291,65 @@ def test_calculator_repl_exit_save_error(mock_print, mock_input):
 def test_calculator_repl_help(mock_print, mock_input):
     calculator_repl()
     mock_print.assert_any_call("\nAvailable commands:")
+
+
+def test_standard_help_menu_lists_non_operation_commands():
+    lines = StandardHelpMenu().get_lines()
+
+    assert "history - Show calculation history" in lines
+    assert "help - Display available commands" in lines
+    assert not any("Perform calculations" in line for line in lines)
+
+
+def test_help_menu_decorator_preserves_wrapped_component():
+    class CustomMenu(HelpMenu):
+        def get_lines(self):
+            return ["custom command"]
+
+    decorator = HelpMenuDecorator(CustomMenu())
+
+    assert decorator.get_lines() == ["custom command"]
+
+
+def test_operation_help_menu_reflects_newly_registered_operation(monkeypatch):
+    class CustomOperation(Operation):
+        def execute(self, a: Decimal, b: Decimal) -> Decimal:
+            return a + b
+
+    monkeypatch.setitem(
+        OperationFactory._operations,
+        "custom_operation",
+        CustomOperation,
+    )
+
+    lines = OperationHelpDecorator(StandardHelpMenu()).get_lines()
+
+    assert lines[0].startswith("add, subtract, multiply")
+    assert "custom_operation" in lines[0]
+    assert lines[1] == "history - Show calculation history"
+
+
+def test_repl_help_uses_registered_operations(monkeypatch):
+    class CustomOperation(Operation):
+        def execute(self, a: Decimal, b: Decimal) -> Decimal:
+            return a + b
+
+    monkeypatch.setitem(
+        OperationFactory._operations,
+        "custom_operation",
+        CustomOperation,
+    )
+
+    with patch("builtins.input", side_effect=["help", "exit"]), patch(
+        "builtins.print"
+    ) as mock_print:
+        calculator_repl()
+
+    mock_print.assert_any_call(
+        "  add, subtract, multiply, divide, power, root, modulus, "
+        "int_divide, percent, abs_diff, custom_operation - Perform calculations"
+    )
+
 
 @patch('builtins.input', side_effect=['add', '2', '3', 'exit'])
 @patch('builtins.print')
