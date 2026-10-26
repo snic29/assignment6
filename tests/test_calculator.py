@@ -290,6 +290,93 @@ def test_calculator_repl_addition(mock_print, mock_input):
     calculator_repl()
     mock_print.assert_any_call("\nResult: 5")
 
+
+@patch(
+    'builtins.input',
+    side_effect=[
+        'queue', 'add', '2', '3',
+        'queue', 'multiply', '4', '5',
+        'run_queue', 'exit',
+    ],
+)
+@patch('builtins.print')
+def test_calculator_repl_queues_and_runs_commands(mock_print, mock_input):
+    calculator_repl()
+
+    mock_print.assert_any_call("Calculation queued (1 pending)")
+    mock_print.assert_any_call("Calculation queued (2 pending)")
+    mock_print.assert_any_call("Result: 5")
+    mock_print.assert_any_call("Result: 20")
+
+
+@pytest.mark.parametrize(
+    "input_sequence",
+    [
+        ['queue', 'cancel', 'exit'],
+        ['queue', 'add', 'cancel', 'exit'],
+        ['queue', 'add', '2', 'cancel', 'exit'],
+    ],
+)
+@patch('builtins.print')
+def test_calculator_repl_queue_cancellation(
+    mock_print, input_sequence
+):
+    with patch('builtins.input', side_effect=input_sequence):
+        calculator_repl()
+
+    mock_print.assert_any_call("Operation cancelled")
+
+
+@patch('builtins.input', side_effect=['queue', 'unknown', 'exit'])
+@patch('builtins.print')
+def test_calculator_repl_queue_unknown_operation(mock_print, mock_input):
+    calculator_repl()
+
+    mock_print.assert_any_call("Error: Unknown operation: unknown")
+
+
+@patch('builtins.input', side_effect=['run_queue', 'exit'])
+@patch('builtins.print')
+def test_calculator_repl_run_empty_queue(mock_print, mock_input):
+    calculator_repl()
+
+    mock_print.assert_any_call("No queued calculations")
+
+
+@patch('builtins.input', side_effect=['queue', 'multiply', '0', '4', 'run_queue', 'exit'])
+@patch('builtins.print')
+def test_calculator_repl_runs_zero_result_from_queue(mock_print, mock_input):
+    calculator_repl()
+
+    mock_print.assert_any_call("Result: 0")
+
+
+@patch('builtins.input', side_effect=['queue', 'add', '2', '3', 'run_queue', 'exit'])
+@patch('builtins.print')
+def test_calculator_repl_queued_non_decimal_result(mock_print, mock_input):
+    with patch(
+        'app.calculator.Calculator.perform_operation',
+        return_value=42,
+    ):
+        calculator_repl()
+
+    mock_print.assert_any_call("Result: 42")
+
+
+@patch(
+    'builtins.input',
+    side_effect=['queue', 'divide', '1', '0', 'run_queue', 'exit'],
+)
+@patch('builtins.print')
+def test_calculator_repl_queue_execution_error(mock_print, mock_input):
+    calculator_repl()
+
+    assert any(
+        call.args == ("Error: Division by zero is not allowed.",)
+        for call in mock_print.call_args_list
+    )
+
+
 @patch('builtins.input', side_effect=['history', 'exit'])
 @patch('builtins.print')
 def test_calculator_repl_empty_history(mock_print, mock_input):
