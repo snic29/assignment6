@@ -197,6 +197,11 @@ class OperationFactory:
         cls._operations[name.lower()] = operation_class
 
     @classmethod
+    def available_operations(cls) -> tuple[str, ...]:
+        """Return the registered operation identifiers in registration order."""
+        return tuple(cls._operations)
+
+    @classmethod
     def create_operation(cls, operation_type: str) -> Operation:
         """
         Create an operation instance based on the operation type.

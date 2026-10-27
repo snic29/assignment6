@@ -277,6 +277,33 @@ class TestOperationFactory:
             operation = OperationFactory.create_operation(op_name.upper())
             assert isinstance(operation, op_class)
 
+    def test_available_operations_returns_registered_identifiers(self, monkeypatch):
+        monkeypatch.setattr(OperationFactory, "_operations", {
+            'add': Addition,
+            'subtract': Subtraction,
+            'multiply': Multiplication,
+            'divide': Division,
+            'power': Power,
+            'root': Root,
+            'modulus': Modulus,
+            'int_divide': IntegerDivision,
+            'percent': Percentage,
+            'abs_diff': AbsoluteDifference,
+        })
+
+        assert OperationFactory.available_operations() == (
+            'add',
+            'subtract',
+            'multiply',
+            'divide',
+            'power',
+            'root',
+            'modulus',
+            'int_divide',
+            'percent',
+            'abs_diff',
+        )
+
     def test_create_invalid_operation(self):
         """Test creation of invalid operation raises error."""
         with pytest.raises(ValueError, match="Unknown operation: invalid_op"):
